@@ -66,12 +66,18 @@ void run_gui()
     gc = DefaultGC(display, screen);
     colormap = DefaultColormap(display, screen);
 
-    XAllocNamedColor(display, colormap, "red", &red, &red);
+    XAllocNamedColor(display, colormap, "white", &red, &red);
     XAllocNamedColor(display, colormap, "green", &green, &green);
 
     int win_width = COLS * BUTTON_SIZE;
     int win_height = ROWS * BUTTON_SIZE;
-    Window window = XCreateSimpleWindow(display, root, 0, 0, win_width, win_height, 1, BlackPixel(display, screen), WhitePixel(display, screen));
+    unsigned int dw = DisplayWidth(display, screen);
+    unsigned int dh = DisplayHeight(display, screen);
+    unsigned int xpos = dw/ 2 + 320;
+    unsigned int ypos = dh/ 2 + 205;
+    dlog("d:%d/%d p:%d/%d", dw, dh, xpos, ypos);
+
+    Window window = XCreateSimpleWindow(display, root, xpos, ypos, win_width, win_height, 1, BlackPixel(display, screen), WhitePixel(display, screen));
     XSelectInput(display, window, ExposureMask | ButtonPressMask);
     XMapWindow(display, window);
 
