@@ -27,12 +27,15 @@
         }                                                                                 \
     }
 
-#define dlog(s, ...) \
-    printf("%s(%d) %s " s "\n", __FILENAME__, __LINE__, __func__, ##__VA_ARGS__)
+#define dlog(s, ...)                                                                  \
+    do                                                                                \
+    {                                                                                 \
+        printf("%s(%d) %s " s "\n", __FILENAME__, __LINE__, __func__, ##__VA_ARGS__); \
+        fflush(stdout);                                                               \
+    } while (0)
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #endif
 
 #endif /* dlog_h */
-

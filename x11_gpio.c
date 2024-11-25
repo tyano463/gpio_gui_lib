@@ -1,11 +1,15 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <stdbool.h>
 
 #include "x11_gpio.h"
+#include "dlog.h"
 
 #define GPIO_PORT_NUM 9
 
@@ -17,8 +21,9 @@ typedef struct
 {
     Window win;
     int state; // 0: OFF, 1: ON
+    int r;
+    int c;
 } Button;
-
 
 Button buttons[ROWS][COLS];
 Display *display;
@@ -27,7 +32,10 @@ int screen;
 GC gc;
 XColor red, green;
 Colormap colormap;
-renesas_gpio_t *renesas_gpio;
+
+static renesas_gpio_t _gpio[GPIO_PORT_NUM];
+renesas_gpio_t *renesas_gpio = _gpio;
+static bool launched;
 
 void toggle_button(Button *btn)
 {
@@ -35,6 +43,11 @@ void toggle_button(Button *btn)
     XSetForeground(display, gc, btn->state ? green.pixel : red.pixel);
     XFillRectangle(display, btn->win, gc, 0, 0, BUTTON_SIZE, BUTTON_SIZE);
     XFlush(display);
+}
+
+bool monitor_launched(void)
+{
+    return launched;
 }
 
 void run_gui()
@@ -46,7 +59,7 @@ void run_gui()
         exit(1);
     }
 
-    renesas_gpio = calloc(sizeof(renesas_gpio_t) * GPIO_PORT_NUM, 1);
+    dlog("gpio:%p", renesas_gpio);
 
     screen = DefaultScreen(display);
     root = RootWindow(display, screen);
@@ -76,34 +89,46 @@ void run_gui()
     }
 
     XEvent event;
+    launched = true;
     while (1)
     {
-        XNextEvent(display, &event);
-        if (event.type == ButtonPress)
+        while (XPending(display))
         {
-            for (int i = 0; i < ROWS; i++)
+            XNextEvent(display, &event);
+            if (event.type == ButtonPress)
             {
-                for (int j = 0; j < COLS; j++)
+                for (int i = 0; i < ROWS; i++)
                 {
-                    if (event.xbutton.window == buttons[i][j].win)
+                    for (int j = 0; j < COLS; j++)
                     {
-                        toggle_button(&buttons[i][j]);
-                        break;
+                        if (event.xbutton.window == buttons[i][j].win)
+                        {
+                            renesas_gpio[i].val ^= (1 << j);
+                            toggle_button(&buttons[i][j]);
+                        }
                     }
                 }
             }
         }
+
         for (int i = 0; i < ROWS; i++)
         {
             for (int j = 0; j < COLS; j++)
             {
-                if (renesas_gpio[i].val & (1 << j))
+                int gpio_state = (renesas_gpio[i].val & (1 << j)) ? 1 : 0;
+                if (gpio_state != buttons[i][j].state)
                 {
                     toggle_button(&buttons[i][j]);
                 }
             }
         }
+
+        usleep(10000);
     }
 
+    dlog("loop exit");
+
     XCloseDisplay(display);
+error_return:
+    return;
 }

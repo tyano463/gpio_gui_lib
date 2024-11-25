@@ -7,7 +7,7 @@ TESTLDFLAGS := -g -O0 -ldl
 OBJS	:= x11_gpio.o
 TESTOBJS	:= main.o
 LIB		:= libx11_gpio.so
-EXE		:= a.out
+EXE		:= main
 
 
 all:$(EXE)

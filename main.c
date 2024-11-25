@@ -4,28 +4,21 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 #include "x11_gpio.h"
 #include "dlog.h"
 
 #define GPIO_PORT_NUM 9
 
-
 typedef void (*RunGuiFunc)();
 
 renesas_gpio_t *gpio;
 
-void *launch(void *arg)
+void *launch(void *handle)
 {
-    void *handle = dlopen("./libx11_gpio.so", RTLD_LAZY);
-    ERR_RET(!handle, "%s", dlerror());
-
     RunGuiFunc run_gui = (RunGuiFunc)dlsym(handle, "run_gui");
     ERR_RET(!run_gui, "%s", dlerror());
-
-    renesas_gpio_t **_gpio = (renesas_gpio_t**)dlsym(handle, "renesas_gpio");
-    ERR_RET(!_gpio, "%s", dlerror());
-    gpio = *_gpio;
 
     dlog("launch gui");
     run_gui();
@@ -39,26 +32,49 @@ error_return:
 int main()
 {
     pthread_t th;
+    bool (*launched)(void);
+
     dlog("start");
-    pthread_create(&th, NULL, launch, NULL);
+    void *handle = dlopen("./libx11_gpio.so", RTLD_LAZY);
+    ERR_RET(!handle, "%s", dlerror());
+
+    pthread_create(&th, NULL, launch, handle);
+
     dlog("thread create");
+
+    renesas_gpio_t **_gpio;
+    _gpio = (renesas_gpio_t **)dlsym(handle, "renesas_gpio");
+    ERR_RET(!_gpio, "%s", dlerror());
+
+    launched = (bool (*)(void))dlsym(handle, "monitor_launched");
+    ERR_RET(!launched, "%s", dlerror());
+
+    gpio = *_gpio;
+    dlog("gpio:%p, %p", gpio, _gpio);
 
     int port = 0;
     int pin = 0;
+    dlog("first gpio:%x", gpio[0].val);
+
+    while (!launched())
+        usleep(10000);
+
     for (;;)
     {
-        if (gpio[port].val & (uint16_t)(1 << pin))
+        if (gpio[port].val & ((uint16_t)(1 << pin)))
         {
-            gpio[port].val &= ~(uint16_t)(1 << pin);
+            gpio[port].val &= (~(uint16_t)(1 << pin));
         }
         else
         {
             gpio[port].val |= (uint16_t)(1 << pin);
         }
-        usleep(200000);
+        dlog("%x", gpio[port].val);
+        usleep(100000);
         pin++;
         if (pin >= 16)
         {
+            pin = 0;
             port++;
         }
 
@@ -66,7 +82,9 @@ int main()
         {
             port = 0;
         }
+        usleep(1);
     }
 
+error_return:
     return 0;
 }
