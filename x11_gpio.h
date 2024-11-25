@@ -3,9 +3,13 @@
 
 #include <stdint.h>
 
-
 typedef struct str_renesas_gpio
 {
+
+    union
+    {
+        uint16_t pdr;
+    };
     union
     {
         uint16_t val;
@@ -30,7 +34,6 @@ typedef struct str_renesas_gpio
         };
     };
 } renesas_gpio_t;
-
 
 extern renesas_gpio_t *renesas_gpio;
 
