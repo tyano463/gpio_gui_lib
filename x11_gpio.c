@@ -3,8 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
-#define ROWS 9
+#include "x11_gpio.h"
+
+#define GPIO_PORT_NUM 9
+
+#define ROWS GPIO_PORT_NUM
 #define COLS 16
 #define BUTTON_SIZE 50
 
@@ -14,6 +19,7 @@ typedef struct
     int state; // 0: OFF, 1: ON
 } Button;
 
+
 Button buttons[ROWS][COLS];
 Display *display;
 Window root;
@@ -21,6 +27,7 @@ int screen;
 GC gc;
 XColor red, green;
 Colormap colormap;
+renesas_gpio_t *renesas_gpio;
 
 void toggle_button(Button *btn)
 {
@@ -38,6 +45,8 @@ void run_gui()
         fprintf(stderr, "Unable to open X display\n");
         exit(1);
     }
+
+    renesas_gpio = calloc(sizeof(renesas_gpio_t) * GPIO_PORT_NUM, 1);
 
     screen = DefaultScreen(display);
     root = RootWindow(display, screen);
@@ -88,6 +97,10 @@ void run_gui()
         {
             for (int j = 0; j < COLS; j++)
             {
+                if (renesas_gpio[i].val & (1 << j))
+                {
+                    toggle_button(&buttons[i][j]);
+                }
             }
         }
     }
