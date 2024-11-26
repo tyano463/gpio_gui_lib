@@ -61,6 +61,7 @@ int main()
 
     for (;;)
     {
+continue;
         if (gpio[port].val & ((uint16_t)(1 << pin)))
         {
             gpio[port].val &= (~(uint16_t)(1 << pin));
