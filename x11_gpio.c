@@ -161,7 +161,7 @@ void run_gui()
             Button *btn = &buttons[i][j];
             btn->win = XCreateSimpleWindow(display, window, x, y, BUTTON_SIZE, BUTTON_SIZE, 1, BlackPixel(display, screen), red.pixel);
             btn->state = 0;
-            XSelectInput(display, btn->win, ButtonPressMask);
+            XSelectInput(display, btn->win, ButtonPressMask | ButtonReleaseMask);
             XMapWindow(display, btn->win);
 
             btn->display = display;
@@ -180,7 +180,7 @@ void run_gui()
         while (XPending(display))
         {
             XNextEvent(display, &event);
-            if (event.type == ButtonPress)
+            if (event.type == ButtonPress || event.type == ButtonRelease)
             {
                 for (int i = 0; i < ROWS; i++)
                 {
@@ -190,6 +190,7 @@ void run_gui()
                         {
                             renesas_gpio[i].val ^= (1 << j);
                             toggle_button(&buttons[i][j]);
+                            dlog("%d%02d:%08x", i, j, renesas_gpio[i].val);
                         }
                     }
                 }
