@@ -209,7 +209,7 @@ void run_gui()
             }
         }
 
-        usleep(10000);
+        usleep(1000);
     }
 
     dlog("loop exit");
